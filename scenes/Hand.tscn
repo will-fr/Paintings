@@ -36,7 +36,7 @@ offset_top = 16.0
 offset_right = -20.0
 offset_bottom = -16.0
 
-[node name="Cards" type="HBoxContainer" parent="HandRoot/Panel/Margin"]
+[node name="Row" type="HBoxContainer" parent="HandRoot/Panel/Margin"]
 anchor_left = 0.0
 anchor_top = 0.5
 anchor_right = 1.0
@@ -45,5 +45,30 @@ offset_left = 0.0
 offset_top = -128.0
 offset_right = 0.0
 offset_bottom = 128.0
-alignment = 1
+theme_override_constants/separation = 10
+
+[node name="LeftArrow" type="Button" parent="HandRoot/Panel/Margin/Row"]
+custom_minimum_size = Vector2(56, 256)
+layout_mode = 2
+size_flags_vertical = 4
+text = "<"
+
+[node name="CardsScroll" type="ScrollContainer" parent="HandRoot/Panel/Margin/Row"]
+custom_minimum_size = Vector2(0, 256)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+
+[node name="Cards" type="HBoxContainer" parent="HandRoot/Panel/Margin/Row/CardsScroll"]
+layout_mode = 2
+alignment = 0
 theme_override_constants/separation = 16
+
+[node name="RightArrow" type="Button" parent="HandRoot/Panel/Margin/Row"]
+custom_minimum_size = Vector2(56, 256)
+layout_mode = 2
+size_flags_vertical = 4
+text = ">"
+
+[connection signal="pressed" from="HandRoot/Panel/Margin/Row/LeftArrow" to="." method="_on_left_arrow_pressed"]
+[connection signal="pressed" from="HandRoot/Panel/Margin/Row/RightArrow" to="." method="_on_right_arrow_pressed"]
