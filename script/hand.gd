@@ -1,5 +1,9 @@
 extends CanvasLayer
 
+const CardsConstants = preload("res://script/globals/cards_constants.gd")
+
+signal card_drag_started(card_data: Dictionary, card_index: int, pointer_screen_pos: Vector2)
+
 const CARD_DISPLAY_HEIGHT := 256.0
 const SCROLL_STEP := 320
 
@@ -9,16 +13,11 @@ const SCROLL_STEP := 320
 @onready var cards_scroll: ScrollContainer = $HandRoot/Panel/Margin/Row/CardsScroll
 @onready var cards_container: HBoxContainer = $HandRoot/Panel/Margin/Row/CardsScroll/Cards
 
-@export var starting_cards: Array[Texture2D] = [
-	preload("res://gfx/paintings/mona_lisa.png"),
-	preload("res://gfx/paintings/starry_night.png"),
-	preload("res://gfx/paintings/girl_pierced_earring.png"),
-	preload("res://gfx/paintings/the_kiss.jpg"),
-	preload("res://gfx/paintings/the_scream.jpg"),
-]
+var hand_cards: Array[Dictionary] = []
 
 
 func _ready() -> void:
+	hand_cards = CardsConstants.get_starting_hand()
 	_populate_hand()
 	hand_root.resized.connect(_update_arrow_state)
 	cards_scroll.get_h_scroll_bar().value_changed.connect(_on_scroll_value_changed)
@@ -31,14 +30,21 @@ func _populate_hand() -> void:
 	for child in cards_container.get_children():
 		child.queue_free()
 
-	for card_texture in starting_cards:
+	for i in range(hand_cards.size()):
+		var card_data: Dictionary = hand_cards[i]
+		var texture_path: String = str(card_data.get("image_path", ""))
+		var card_texture: Texture2D = load(texture_path)
+		if card_texture == null:
+			continue
+
 		var card := TextureRect.new()
 		var resized_texture := _resize_texture_to_height(card_texture, int(CARD_DISPLAY_HEIGHT))
 		card.texture = resized_texture
 		card.custom_minimum_size = Vector2(resized_texture.get_width(), CARD_DISPLAY_HEIGHT)
 		card.expand_mode = TextureRect.EXPAND_KEEP_SIZE
 		card.stretch_mode = TextureRect.STRETCH_KEEP
-		card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		card.mouse_filter = Control.MOUSE_FILTER_STOP
+		card.gui_input.connect(_on_card_gui_input.bind(card_data.duplicate(true), i))
 		cards_container.add_child(card)
 
 	await get_tree().process_frame
@@ -57,6 +63,25 @@ func _resize_texture_to_height(source_texture: Texture2D, target_height: int) ->
 	resized_image.resize(target_width, target_height, Image.INTERPOLATE_LANCZOS)
 
 	return ImageTexture.create_from_image(resized_image)
+
+
+func remove_card(card_index: int) -> void:
+	if card_index < 0 or card_index >= hand_cards.size():
+		return
+
+	hand_cards.remove_at(card_index)
+	_populate_hand()
+
+
+func _on_card_gui_input(event: InputEvent, card_data: Dictionary, card_index: int) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		emit_signal("card_drag_started", card_data, card_index, get_viewport().get_mouse_position())
+		get_viewport().set_input_as_handled()
+		return
+
+	if event is InputEventScreenTouch and event.pressed:
+		emit_signal("card_drag_started", card_data, card_index, event.position)
+		get_viewport().set_input_as_handled()
 
 
 func _on_left_arrow_pressed() -> void:
