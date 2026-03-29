@@ -1,3 +1,5 @@
 res://script/main.gd
 res://script/globals/globals.gd
 res://scenes/main.tscn
+res://script/canvas.gd
+res://script/hand.gd

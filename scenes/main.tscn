@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bne2qn0502oln" path="res://script/main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/Canvas.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/Hand.tscn" id="3"]
 [ext_resource type="Script" uid="uid://da6w21fa2f38d" path="res://script/main_camera.gd" id="4"]
 [ext_resource type="Texture2D" uid="uid://dev4bs52hew0l" path="res://gfx/paintings/girl_pierced_earring.png" id="4_jyhfs"]
 
@@ -23,6 +24,8 @@ horizontal_alignment = 2
 text = "Score: 0"
 
 [node name="Canvas" parent="." unique_id=435246214 instance=ExtResource("2")]
+
+[node name="Hand" parent="." instance=ExtResource("3")]
 
 [node name="MainCamera" type="Camera2D" parent="." unique_id=760892465]
 script = ExtResource("4")
