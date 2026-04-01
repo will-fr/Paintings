@@ -15,6 +15,12 @@ var drag_card_index := -1
 var drag_card_size_cells := Vector2i(3, 3)
 var drag_preview: Sprite2D
 var last_pointer_screen_pos := Vector2.ZERO
+var occupied_cells: Dictionary = {}
+
+const DRAG_EDGE_PAN_MARGIN := 96.0
+const DRAG_EDGE_PAN_SPEED := 1400.0
+const DRAG_TINT_VALID := Color(1.0, 1.0, 1.0, 0.95)
+const DRAG_TINT_INVALID := Color(1.0, 0.35, 0.35, 0.95)
 
 
 func _ready() -> void:
@@ -63,6 +69,13 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+func _process(delta: float) -> void:
+	if not drag_active:
+		return
+
+	_apply_drag_edge_pan(delta)
+
+
 func _on_hand_card_drag_started(card_data: Dictionary, card_index: int, pointer_screen_pos: Vector2) -> void:
 	if drag_active:
 		return
@@ -109,6 +122,11 @@ func _update_drag_preview_position(pointer_screen_pos: Vector2) -> void:
 	var snapped := _snap_world_to_grid(world_pos)
 	drag_preview.position = snapped
 
+	if _can_place_card_at(snapped, drag_card_size_cells):
+		drag_preview.modulate = DRAG_TINT_VALID
+	else:
+		drag_preview.modulate = DRAG_TINT_INVALID
+
 
 func _finish_drag(pointer_screen_pos: Vector2) -> void:
 	var world_pos := _screen_to_world(pointer_screen_pos)
@@ -143,7 +161,8 @@ func _place_card(world_pos: Vector2, card_texture: Texture2D, card_size_cells: V
 	var sprite := Sprite2D.new()
 	sprite.texture = card_texture
 	sprite.centered = false
-	sprite.position = _snap_world_to_grid(world_pos)
+	var snapped_pos := _snap_world_to_grid(world_pos)
+	sprite.position = snapped_pos
 
 	var target_size_px := Vector2(card_size_cells.x, card_size_cells.y) * Globals.CELL_SIZE
 	sprite.scale = Vector2(
@@ -151,6 +170,9 @@ func _place_card(world_pos: Vector2, card_texture: Texture2D, card_size_cells: V
 		target_size_px.y / maxf(1.0, float(card_texture.get_height()))
 	)
 	canvas.add_child(sprite)
+
+	var top_left_cell := _world_to_cell(snapped_pos)
+	_mark_cells_occupied(top_left_cell, card_size_cells)
 
 
 func _snap_world_to_grid(world_pos: Vector2) -> Vector2:
@@ -174,6 +196,12 @@ func _can_place_card_at(world_pos: Vector2, card_size_cells: Vector2i) -> bool:
 	if top_left_cell.y + card_size_cells.y > Globals.GRID_ROWS:
 		return false
 
+	for y in range(card_size_cells.y):
+		for x in range(card_size_cells.x):
+			var cell := Vector2i(top_left_cell.x + x, top_left_cell.y + y)
+			if occupied_cells.has(cell):
+				return false
+
 	return true
 
 
@@ -184,5 +212,36 @@ func _world_to_cell(world_pos: Vector2) -> Vector2i:
 	)
 
 
+func _mark_cells_occupied(top_left_cell: Vector2i, card_size_cells: Vector2i) -> void:
+	for y in range(card_size_cells.y):
+		for x in range(card_size_cells.x):
+			var cell := Vector2i(top_left_cell.x + x, top_left_cell.y + y)
+			occupied_cells[cell] = true
+
+
 func _screen_to_world(screen_pos: Vector2) -> Vector2:
 	return get_viewport().get_canvas_transform().affine_inverse() * screen_pos
+
+
+func _apply_drag_edge_pan(delta: float) -> void:
+	var viewport_size := get_viewport().get_visible_rect().size
+	var pan_dir := Vector2.ZERO
+
+	if last_pointer_screen_pos.x <= DRAG_EDGE_PAN_MARGIN:
+		pan_dir.x = -1.0
+	elif last_pointer_screen_pos.x >= viewport_size.x - DRAG_EDGE_PAN_MARGIN:
+		pan_dir.x = 1.0
+
+	if last_pointer_screen_pos.y <= DRAG_EDGE_PAN_MARGIN:
+		pan_dir.y = -1.0
+	elif last_pointer_screen_pos.y >= viewport_size.y - DRAG_EDGE_PAN_MARGIN:
+		pan_dir.y = 1.0
+
+	if pan_dir == Vector2.ZERO:
+		return
+
+	var pan_delta := pan_dir.normalized() * DRAG_EDGE_PAN_SPEED * delta
+	if camera.has_method("pan_by"):
+		camera.call("pan_by", pan_delta)
+
+	_update_drag_preview_position(last_pointer_screen_pos)

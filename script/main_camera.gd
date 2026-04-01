@@ -95,6 +95,11 @@ func set_pan_enabled(allow_pan: bool) -> void:
 		pan_velocity = Vector2.ZERO
 
 
+func pan_by(world_delta: Vector2) -> void:
+	position += world_delta
+	_clamp_to_board()
+
+
 func _clamp_to_board() -> void:
 	if board_size == Vector2.ZERO:
 		return

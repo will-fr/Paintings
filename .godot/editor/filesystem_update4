@@ -3,3 +3,5 @@ res://script/globals/globals.gd
 res://scenes/main.tscn
 res://script/canvas.gd
 res://script/hand.gd
+res://script/main_camera.gd
+res://script/globals/cards_constants.gd
